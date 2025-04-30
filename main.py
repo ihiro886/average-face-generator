@@ -205,7 +205,7 @@ def main():
     parser.add_argument('--sequence', action='store_true', help='モーフィングシーケンスを生成')
     parser.add_argument('--steps', type=int, default=5, help='シーケンスのステップ数（デフォルト: 5）')
     parser.add_argument('--visualize', action='store_true', help='三角形分割を可視化')
-    parser.add_argument('--enhance-features', action='store_true', help='特徴を強調した合成を生成')
+    # parser.add_argument('--enhance-features', action='store_true', help='特徴を強調した合成を生成')
     
     args = parser.parse_args()
     
@@ -328,9 +328,9 @@ def main():
     print(f"合成顔画像を保存しました: {output_img_path}")
     
     # 特徴強調版の生成
-    if args.enhance_features:
-        create_feature_enhanced_blend(img1, img2_resized, landmarks1, landmarks2, 
-                                     args.output_folder, base_filename)
+    # if args.enhance_features:
+    #     create_feature_enhanced_blend(img1, img2_resized, landmarks1, landmarks2, 
+    #                                  args.output_folder, base_filename)
     
     # モーフィングシーケンスの生成
     if args.sequence:
