@@ -48,10 +48,11 @@ if img2 is None:
     sys.exit(1)
 
 # 画像サイズの統一（ここでは img1 のサイズに合わせる）
-img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
+img2_resized = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
 
 # 各画像のランドマークを取得
 landmarks1 = get_landmarks(img1)
+landmarks2 = get_landmarks(img2_resized) # サイズ変更後の画像からランドマークを取得
 
 if landmarks1 is None:
     print(f"エラー: {input_img1_path} から顔を検出できませんでした。")
@@ -60,16 +61,28 @@ if landmarks2 is None:
     print(f"エラー: {input_img2_path} から顔を検出できませんでした。")
     sys.exit(1)
 
-# cv2.estimateAffinePartial2D を用いて、各画像のランドマークから平均ランドマークへのアフィン変換行列を推定
-M1, _ = cv2.estimateAffinePartial2D(landmarks1, avg_landmarks)
-M2, _ = cv2.estimateAffinePartial2D(landmarks2, avg_landmarks)
+# アフィン変換の計算に顔全体のランドマーク点を使用
+# dlibの68点ランドマークの全ての点を使用する場合、インデックスは 0 から 67 まで全てとなる
+all_landmarks_indices = list(range(68))
 
-# 各画像を平均の形状に合わせてワーピング（リサイズ）
+# 顔全体のランドマーク点のみを抽出
+landmarks1_all = landmarks1[all_landmarks_indices]
+landmarks2_all = landmarks2[all_landmarks_indices]
+
+# 顔全体のランドマークの平均位置を計算
+avg_landmarks_all = (landmarks1_all + landmarks2_all) / 2
+
+# cv2.estimateAffinePartial2D を用いて、各画像の顔全体のランドマークから平均ランドマークへのアフィン変換行列を推定
+M1, _ = cv2.estimateAffinePartial2D(landmarks1_all, avg_landmarks_all)
+M2, _ = cv2.estimateAffinePartial2D(landmarks2_all, avg_landmarks_all)
+
+# 各画像を平均の顔の形状に合わせてワーピング（リサイズと変形）
 size = (img1.shape[1], img1.shape[0])
-warped1 = cv2.warpAffine(img1, M1, size)
-warped2 = cv2.warpAffine(img2, M2, size)
+warped1 = cv2.warpAffine(img1, M1, size, flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT_101)
+warped2 = cv2.warpAffine(img2_resized, M2, size, flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT_101)
 
 # ワーピングした画像のピクセルごとの平均を計算
+# シンプルなアルファブレンド
 average_face = cv2.addWeighted(warped1, 0.5, warped2, 0.5, 0)
 
 # 出力ファイル名を生成 (入力ファイル名をハイフンで結合)
