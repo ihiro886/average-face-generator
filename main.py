@@ -15,7 +15,8 @@ def get_landmarks(img):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     faces = detector(gray)
     if len(faces) == 0:
-        raise ValueError("顔が検出できませんでした")
+        # 顔が検出されなかった場合はNoneを返す
+        return None
     # 最初に検出された顔のランドマークを使用
     shape = predictor(gray, faces[0])
     # 各パーツの座標を numpy 配列に変換
@@ -24,7 +25,7 @@ def get_landmarks(img):
 
 # コマンドライン引数からファイル名と出力フォルダを取得
 if len(sys.argv) != 4:
-    print("Usage: python main.py <input_image1> <input_image2> <output_folder>")
+    print("使い方: python main.py <入力画像1> <入力画像2> <出力フォルダ>")
     sys.exit(1)
 
 input_img1_path = sys.argv[1]
@@ -40,10 +41,10 @@ img1 = cv2.imread(input_img1_path)
 img2 = cv2.imread(input_img2_path)
 
 if img1 is None:
-    print(f"Error: Could not open image {input_img1_path}")
+    print(f"エラー: 画像ファイルを開けませんでした - {input_img1_path}")
     sys.exit(1)
 if img2 is None:
-    print(f"Error: Could not open image {input_img2_path}")
+    print(f"エラー: 画像ファイルを開けませんでした - {input_img2_path}")
     sys.exit(1)
 
 # 画像サイズの統一（ここでは img1 のサイズに合わせる）
@@ -51,10 +52,13 @@ img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
 
 # 各画像のランドマークを取得
 landmarks1 = get_landmarks(img1)
-landmarks2 = get_landmarks(img2)
 
-# 両画像のランドマークの平均位置を計算
-avg_landmarks = (landmarks1 + landmarks2) / 2
+if landmarks1 is None:
+    print(f"エラー: {input_img1_path} から顔を検出できませんでした。")
+    sys.exit(1)
+if landmarks2 is None:
+    print(f"エラー: {input_img2_path} から顔を検出できませんでした。")
+    sys.exit(1)
 
 # cv2.estimateAffinePartial2D を用いて、各画像のランドマークから平均ランドマークへのアフィン変換行列を推定
 M1, _ = cv2.estimateAffinePartial2D(landmarks1, avg_landmarks)
@@ -75,7 +79,8 @@ img2_filename = os.path.basename(input_img2_path)
 # 拡張子を除去
 name1, ext1 = os.path.splitext(img1_filename)
 name2, ext2 = os.path.splitext(img2_filename)
-output_filename = f"{name1}-{name2}{ext1}" # 最初の画像の拡張子を使用
+# 最初の画像の拡張子を使用
+output_filename = f"{name1}-{name2}{ext1}"
 
 # 出力ファイルのフルパスを生成
 output_img_path = os.path.join(output_folder, output_filename)
@@ -83,4 +88,4 @@ output_img_path = os.path.join(output_folder, output_filename)
 # 結果の保存
 cv2.imwrite(output_img_path, average_face)
 
-print(f"Average face image saved to {output_img_path}")
+print(f"合成した顔画像を保存しました: {output_img_path}")
