@@ -1,5 +1,17 @@
 # average-face-generator
 
+このアプリケーションは、2つの顔画像を合成して新しい顔画像を生成するためのツールです。
+
+dlibを使用して顔のランドマークを検出し、三角形分割とモーフィング技術を用いて自然な合成を実現します。
+
+## 必要条件
+
+- OpenCV (`cv2`)
+- dlib
+- NumPy
+- SciPy
+- Matplotlib
+
 ## 環境構築
 
 仮想環境を作成
@@ -22,6 +34,11 @@ $ source .venv/bin/activate
 
 ## モデルのダウンロードと配置
 
-1. http://dlib.net/files/ から `shape_predictor_68_face_landmarks.dat.bz2` をダウンロードする
+dlibの顔検出モデルが別途必要です：
 
-2. ダウンロードしたファイルを展開して、 `model` ディレクトリに配置する
+```shell
+# モデルファイルをダウンロード
+$ curl -L -O http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2
+$ bunzip2 shape_predictor_68_face_landmarks.dat.bz2
+$ mv shape_predictor_68_face_landmarks.dat model/
+```
