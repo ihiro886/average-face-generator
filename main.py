@@ -1,6 +1,7 @@
 import cv2
 import dlib
 import numpy as np
+import sys
 
 # dlib の顔検出器とランドマーク検出器の読み込み
 detector = dlib.get_frontal_face_detector()
@@ -20,9 +21,26 @@ def get_landmarks(img):
     landmarks = np.array([(pt.x, pt.y) for pt in shape.parts()], dtype=np.float32)
     return landmarks
 
-# 画像の読み込み（適宜パスを変更してください）
-img1 = cv2.imread("input/img1.jpg")
-img2 = cv2.imread("input/img2.jpg")
+# コマンドライン引数からファイル名を取得
+if len(sys.argv) != 4:
+    print("Usage: python main.py <input_image1> <input_image2> <output_image>")
+    sys.exit(1)
+
+input_img1_path = sys.argv[1]
+input_img2_path = sys.argv[2]
+output_img_path = sys.argv[3]
+
+# 画像の読み込み
+img1 = cv2.imread(input_img1_path)
+img2 = cv2.imread(input_img2_path)
+
+if img1 is None:
+    print(f"Error: Could not open image {input_img1_path}")
+    sys.exit(1)
+if img2 is None:
+    print(f"Error: Could not open image {input_img2_path}")
+    sys.exit(1)
+
 
 # 画像サイズの統一（ここでは img1 のサイズに合わせる）
 img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
@@ -46,9 +64,7 @@ warped2 = cv2.warpAffine(img2, M2, size)
 # ワーピングした画像のピクセルごとの平均を計算
 average_face = cv2.addWeighted(warped1, 0.5, warped2, 0.5, 0)
 
-# 結果の表示と保存
-# cv2.imshow("Average Face", average_face)
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
+# 結果の保存
+cv2.imwrite(output_img_path, average_face)
 
-cv2.imwrite("output/img1-img2.jpg", average_face)
+print(f"Average face image saved to {output_img_path}")
