@@ -4,6 +4,8 @@ import numpy as np
 import sys
 import os
 from scipy.spatial import Delaunay
+import matplotlib.pyplot as plt
+import argparse
 
 # dlib の顔検出器とランドマーク検出器の読み込み
 detector = dlib.get_frontal_face_detector()
@@ -73,29 +75,32 @@ def morph_triangle(img1, img2, img, t1, t2, t, alpha):
     # マスクを使って結果を元の画像にコピー
     img[r[1]:r[1]+r[3], r[0]:r[0]+r[2]] = img[r[1]:r[1]+r[3], r[0]:r[0]+r[2]] * (1 - mask) + img_rect * mask
 
-
-# コマンドライン引数からファイル名と出力フォルダを取得
-if len(sys.argv) != 4:
-    print("使い方: python main.py <入力画像1> <入力画像2> <出力フォルダ>")
-    sys.exit(1)
-
-input_img1_path = sys.argv[1]
-input_img2_path = sys.argv[2]
-output_folder = sys.argv[3]
+def main():
+    # コマンドライン引数の解析
+    parser = argparse.ArgumentParser(description='高度な顔合成')
+    parser.add_argument('input_img1', help='入力画像1のパス')
+    parser.add_argument('input_img2', help='入力画像2のパス')
+    parser.add_argument('output_folder', help='出力フォルダのパス')
+    parser.add_argument('--sequence', action='store_true', help='モーフィングシーケンスを生成')
+    parser.add_argument('--steps', type=int, default=5, help='シーケンスのステップ数（デフォルト: 5）')
+    parser.add_argument('--visualize', action='store_true', help='三角形分割を可視化')
+    parser.add_argument('--enhance-features', action='store_true', help='特徴を強調した合成を生成')
+    
+    args = parser.parse_args()
 
 # 出力フォルダが存在しない場合は作成
-if not os.path.exists(output_folder):
-    os.makedirs(output_folder)
+    if not os.path.exists(args.output_folder):
+        os.makedirs(args.output_folder)
 
 # 画像の読み込み
-img1 = cv2.imread(input_img1_path)
-img2 = cv2.imread(input_img2_path)
+    img1 = cv2.imread(args.input_img1)
+    img2 = cv2.imread(args.input_img2)
 
 if img1 is None:
-    print(f"エラー: 画像ファイルを開けませんでした - {input_img1_path}")
+        print(f"エラー: 画像ファイルを開けませんでした - {args.input_img1}")
     sys.exit(1)
 if img2 is None:
-    print(f"エラー: 画像ファイルを開けませんでした - {input_img2_path}")
+        print(f"エラー: 画像ファイルを開けませんでした - {args.input_img2}")
     sys.exit(1)
 
 # 画像サイズの統一（ここでは img1 のサイズに合わせる）
@@ -106,10 +111,10 @@ landmarks1 = get_landmarks(img1)
 landmarks2 = get_landmarks(img2_resized)
 
 if landmarks1 is None:
-    print(f"エラー: {input_img1_path} から顔を検出できませんでした。")
+        print(f"エラー: {args.input_img1} から顔を検出できませんでした。")
     sys.exit(1)
 if landmarks2 is None:
-    print(f"エラー: {input_img2_path} から顔を検出できませんでした。")
+        print(f"エラー: {args.input_img2} から顔を検出できませんでした。")
     sys.exit(1)
 
 # 顔の輪郭を囲む点を追加（より良いトライアンギュレーションのため）
@@ -139,7 +144,22 @@ mouth_indices = list(range(48, 68))  # 口
 eyebrows_indices = list(range(17, 27))  # 眉毛
 jaw_indices = list(range(0, 17))  # 顎
 
-# パーツごとにブレンド率を調整（パーツの特徴をより強調）
+    # ベースファイル名の作成
+    img1_filename = os.path.basename(args.input_img1)
+    img2_filename = os.path.basename(args.input_img2)
+    name1, ext1 = os.path.splitext(img1_filename)
+    name2, ext2 = os.path.splitext(img2_filename)
+    base_filename = f"{name1}-{name2}"
+    
+    # 三角形分割の可視化
+    if args.visualize:
+        vis_path = os.path.join(args.output_folder, f"{base_filename}_triangulation.jpg")
+        visualize_triangulation(img1, landmarks1_with_boundary, tri, vis_path)
+    
+    # 出力画像を初期化
+    morphed_img = np.zeros_like(img1, dtype=np.float32)
+    
+    # パーツごとにブレンド率を調整
 parts_alpha = {
     "eyes": 0.5,      # 目は均等ブレンド
     "nose": 0.5,      # 鼻は均等ブレンド
@@ -201,68 +221,12 @@ cv2.imwrite(output_img_path, morphed_img)
 
 print(f"合成顔画像を保存しました: {output_img_path}")
 
-# オプション: 各パーツの強調度を調整したバージョンも生成
-def create_custom_blend(img1, img2_resized, landmarks1_with_boundary, landmarks2_with_boundary, tri, 
-                        eyes_alpha=0.5, nose_alpha=0.5, mouth_alpha=0.5, eyebrows_alpha=0.5, jaw_alpha=0.5,
-                        suffix="_custom"):
-    """カスタムブレンド率で合成顔画像を生成する関数"""
-    # パーツごとのブレンド率設定
-    custom_parts_alpha = {
-        "eyes": eyes_alpha,
-        "nose": nose_alpha,
-        "mouth": mouth_alpha,
-        "eyebrows": eyebrows_alpha,
-        "jaw": jaw_alpha,
-        "other": 0.5
-    }
+                                     args.output_folder, base_filename)
     
-    # 平均ランドマークの計算（通常の0.5ブレンド）
-    avg_landmarks = 0.5 * landmarks1_with_boundary + 0.5 * landmarks2_with_boundary
-    
-    # 出力画像を初期化
-    custom_img = np.zeros_like(img1, dtype=np.float32)
-    
-    # 各三角形に対して処理
-    for i in range(len(tri)):
-        idx1, idx2, idx3 = tri[i]
-        
-        t1 = [landmarks1_with_boundary[idx1], landmarks1_with_boundary[idx2], landmarks1_with_boundary[idx3]]
-        t2 = [landmarks2_with_boundary[idx1], landmarks2_with_boundary[idx2], landmarks2_with_boundary[idx3]]
-        t = [avg_landmarks[idx1], avg_landmarks[idx2], avg_landmarks[idx3]]
-        
-        # 三角形が属する顔パーツを判断
-        if idx1 in eyes_indices or idx2 in eyes_indices or idx3 in eyes_indices:
-            curr_alpha = custom_parts_alpha["eyes"]
-        elif idx1 in nose_indices or idx2 in nose_indices or idx3 in nose_indices:
-            curr_alpha = custom_parts_alpha["nose"]
-        elif idx1 in mouth_indices or idx2 in mouth_indices or idx3 in mouth_indices:
-            curr_alpha = custom_parts_alpha["mouth"]
-        elif idx1 in eyebrows_indices or idx2 in eyebrows_indices or idx3 in eyebrows_indices:
-            curr_alpha = custom_parts_alpha["eyebrows"]
-        elif idx1 in jaw_indices or idx2 in jaw_indices or idx3 in jaw_indices:
-            curr_alpha = custom_parts_alpha["jaw"]
-        else:
-            curr_alpha = custom_parts_alpha["other"]
-        
-        morph_triangle(img1, img2_resized, custom_img, t1, t2, t, curr_alpha)
-    
-    # float32からuint8に変換
-    custom_img = np.uint8(custom_img)
-    
-    # 出力ファイル名
-    output_filename = f"{name1}-{name2}{suffix}{ext1}"
-    output_img_path = os.path.join(output_folder, output_filename)
-    
-    # 結果の保存
-    cv2.imwrite(output_img_path, custom_img)
-    print(f"合成した顔画像を保存しました: {output_img_path}")
-    
-    return custom_img
+    # モーフィングシーケンスの生成
+    if args.sequence:
+        create_sequence(img1, img2_resized, landmarks1_with_boundary, landmarks2_with_boundary, 
+                       tri, args.output_folder, base_filename, args.steps)
 
-# # 例: 目を強調したバージョン (画像1の目をより強く反映)
-# create_custom_blend(img1, img2_resized, landmarks1_with_boundary, landmarks2_with_boundary, tri,
-#                     eyes_alpha=0.3, suffix="_eyes1")
-
-# # 例: 口を強調したバージョン (画像2の口をより強く反映)
-# create_custom_blend(img1, img2_resized, landmarks1_with_boundary, landmarks2_with_boundary, tri,
-#                     mouth_alpha=0.7, suffix="_mouth2")
+if __name__ == "__main__":
+    main()
