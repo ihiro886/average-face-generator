@@ -57,13 +57,13 @@ $ mv shape_predictor_68_face_landmarks.dat model/
 ### 基本的な合成
 
 ```shell
-python main.py <入力画像1のパス> <入力画像2のパス> <出力フォルダパス>
+(.venv) $ python main.py <入力画像1のパス> <入力画像2のパス> <出力フォルダパス>
 ```
 
 ### 高度な合成（オプション付き）
 
 ```shell
-python main.py <入力画像1のパス> <入力画像2のパス> <出力フォルダパス> --sequence --steps 10 --visualize
+(.venv) $ python main.py <入力画像1のパス> <入力画像2のパス> <出力フォルダパス> --sequence --steps 10 --visualize
 ```
 
 ### オプション
