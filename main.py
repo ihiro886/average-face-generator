@@ -4,7 +4,6 @@ import numpy as np
 import sys
 import os
 from scipy.spatial import Delaunay
-import matplotlib.pyplot as plt
 import argparse
 
 # dlib の顔検出器とランドマーク検出器の読み込み

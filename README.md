@@ -19,7 +19,6 @@ dlibを使用して顔のランドマークを検出し、三角形分割とモ�
 - dlib
 - NumPy
 - SciPy
-- Matplotlib
 
 ## 環境構築
 
