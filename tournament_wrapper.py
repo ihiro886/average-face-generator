@@ -22,6 +22,7 @@ class TournamentFaceMorph:
         self.main_script_path = Path(main_script_path)
         self.log_file = None
         self.tournament_log = []
+        self.tournament_bracket = {}  # トーナメント表用データ
 
         # サポートする画像拡張子
         self.image_extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif']
@@ -170,6 +171,297 @@ class TournamentFaceMorph:
 
         self.log_message(f"トーナメント結果をJSONで保存: {json_path}")
 
+    def create_tournament_bracket_html(self):
+        """トーナメント表をHTMLで生成"""
+        html_path = self.output_dir / "tournament_bracket.html"
+
+        # トーナメント構造の解析
+        rounds_data = {}
+        for match in self.tournament_log:
+            round_num = match["round"]
+            if round_num not in rounds_data:
+                rounds_data[round_num] = []
+            rounds_data[round_num].append(match)
+
+        # HTMLの生成
+        html_content = self._generate_bracket_html(rounds_data)
+
+        with open(html_path, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+
+        self.log_message(f"トーナメント表をHTMLで生成: {html_path}")
+
+    def _generate_bracket_html(self, rounds_data):
+        """トーナメント表のHTML生成"""
+        max_round = max(rounds_data.keys()) if rounds_data else 0
+
+        html = f"""
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>顔合成トーナメント表</title>
+    <style>
+        body {{
+            font-family: 'Arial', sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }}
+        .tournament-container {{
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }}
+        .tournament-title {{
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 24px;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }}
+        .bracket {{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-width: 800px;
+        }}
+        .round {{
+            display: flex;
+            flex-direction: column;
+            margin: 0 20px;
+            position: relative;
+        }}
+        .round-title {{
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #555;
+            font-size: 16px;
+            background: #e3f2fd;
+            padding: 5px 10px;
+            border-radius: 15px;
+        }}
+        .match {{
+            margin: 15px 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+            border: 2px solid #ddd;
+            transition: transform 0.2s;
+        }}
+        .match:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }}
+        .participant {{
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+        }}
+        .participant:last-child {{
+            border-bottom: none;
+        }}
+        .participant.winner {{
+            background-color: #e8f5e8;
+            font-weight: bold;
+        }}
+        .participant-name {{
+            flex: 1;
+            font-size: 14px;
+            color: #333;
+        }}
+        .result {{
+            background: #f0f8ff;
+            padding: 8px 12px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #ddd;
+        }}
+        .final-result {{
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            border: 3px solid #ffa000;
+            transform: scale(1.1);
+        }}
+        .final-result .participant {{
+            background: rgba(255, 215, 0, 0.2);
+            font-weight: bold;
+            font-size: 16px;
+        }}
+        .connecting-line {{
+            position: absolute;
+            border-top: 2px solid #4CAF50;
+            z-index: -1;
+        }}
+        .info-section {{
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }}
+        .info-title {{
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }}
+        .stats {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }}
+        .stat-item {{
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        .stat-number {{
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+        }}
+        .stat-label {{
+            color: #666;
+            font-size: 14px;
+        }}
+    </style>
+</head>
+<body>
+    <div class="tournament-container">
+        <h1 class="tournament-title">🏆 顔合成トーナメント表</h1>
+
+        <div class="bracket">
+"""
+
+        # 各ラウンドを生成
+        for round_num in sorted(rounds_data.keys()):
+            matches = rounds_data[round_num]
+            is_final = round_num == max_round
+
+            html += f'            <div class="round">\n'
+            html += f'                <div class="round-title">{"決勝" if is_final else f"第{round_num}回戦"}</div>\n'
+
+            for match in matches:
+                img1_name = Path(match["image1"]).stem
+                img2_name = Path(match["image2"]).stem
+                result_name = Path(match["result"]).stem
+
+                match_class = "match final-result" if is_final else "match"
+
+                html += f'                <div class="{match_class}">\n'
+                html += f'                    <div class="participant">\n'
+                html += f'                        <div class="participant-name">{img1_name}</div>\n'
+                html += f'                    </div>\n'
+                html += f'                    <div class="participant">\n'
+                html += f'                        <div class="participant-name">{img2_name}</div>\n'
+                html += f'                    </div>\n'
+                html += f'                    <div class="result">→ {result_name}</div>\n'
+                html += f'                </div>\n'
+
+            html += f'            </div>\n'
+
+        # 統計情報
+        total_matches = len(self.tournament_log)
+        total_rounds = max_round if rounds_data else 0
+        start_images = 2 ** total_rounds if total_rounds > 0 else 0
+
+        html += f"""
+        </div>
+
+        <div class="info-section">
+            <div class="info-title">📊 トーナメント統計</div>
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-number">{start_images}</div>
+                    <div class="stat-label">開始画像数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{total_rounds}</div>
+                    <div class="stat-label">総回戦数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{total_matches}</div>
+                    <div class="stat-label">総対戦数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">1</div>
+                    <div class="stat-label">最終勝者</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <div class="info-title">📁 ファイル情報</div>
+                <p><strong>入力フォルダ:</strong> {self.input_dir}</p>
+                <p><strong>出力フォルダ:</strong> {self.output_dir}</p>
+                <p><strong>実行日時:</strong> {datetime.now().strftime('%Y年%m月%d日 %H:%M:%S')}</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+"""
+
+        return html
+
+    def create_tournament_bracket_text(self):
+        """トーナメント表をテキストで生成"""
+        text_path = self.output_dir / "tournament_bracket.txt"
+
+        # トーナメント構造の解析
+        rounds_data = {}
+        for match in self.tournament_log:
+            round_num = match["round"]
+            if round_num not in rounds_data:
+                rounds_data[round_num] = []
+            rounds_data[round_num].append(match)
+
+        max_round = max(rounds_data.keys()) if rounds_data else 0
+
+        with open(text_path, 'w', encoding='utf-8') as f:
+            f.write("🏆 顔合成トーナメント表\n")
+            f.write("=" * 50 + "\n\n")
+
+            for round_num in sorted(rounds_data.keys()):
+                matches = rounds_data[round_num]
+                is_final = round_num == max_round
+
+                round_title = "決勝" if is_final else f"第{round_num}回戦"
+                f.write(f"【{round_title}】\n")
+                f.write("-" * 30 + "\n")
+
+                for i, match in enumerate(matches, 1):
+                    img1_name = Path(match["image1"]).stem
+                    img2_name = Path(match["image2"]).stem
+                    result_name = Path(match["result"]).stem
+
+                    f.write(f"対戦{i}: {img1_name}\n")
+                    f.write(f"     vs {img2_name}\n")
+                    f.write(f"     →  {result_name}\n")
+                    f.write("\n")
+
+                f.write("\n")
+
+            # 統計情報
+            total_matches = len(self.tournament_log)
+            start_images = 2 ** max_round if max_round > 0 else 0
+
+            f.write("📊 統計情報\n")
+            f.write("-" * 20 + "\n")
+            f.write(f"開始画像数: {start_images}枚\n")
+            f.write(f"総回戦数: {max_round}回戦\n")
+            f.write(f"総対戦数: {total_matches}試合\n")
+            f.write(f"実行日時: {datetime.now().strftime('%Y年%m月%d日 %H:%M:%S')}\n")
+
+        self.log_message(f"トーナメント表をテキストで生成: {text_path}")
+
     def run_tournament(self):
         """トーナメント全体を実行"""
         # 出力ディレクトリの準備
@@ -204,6 +496,10 @@ class TournamentFaceMorph:
 
         # JSON結果の保存
         self.save_tournament_json()
+
+        # トーナメント表の生成
+        self.create_tournament_bracket_html()
+        self.create_tournament_bracket_text()
 
         # 完了ログ
         self.log_message("\n全ての処理が完了しました。")
