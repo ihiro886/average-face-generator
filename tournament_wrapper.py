@@ -6,7 +6,6 @@
 最終的な合成画像を生成します。
 """
 
-import os
 import sys
 import argparse
 import subprocess
