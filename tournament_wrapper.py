@@ -86,7 +86,7 @@ class TournamentFaceMorph:
         ]
 
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            subprocess.run(cmd, capture_output=True, text=True, check=True)
 
             # 生成された合成画像を探す
             pattern = f"{img1_path.stem}-{img2_path.stem}.jpg"
