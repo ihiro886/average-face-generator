@@ -93,3 +93,21 @@ parts_alpha = {
     "other": 0.5      
 }
 ```
+
+## トーナメント自動合成
+
+複数画像をトーナメント方式で自動合成するには、`tournament_wrapper.py` を使います。  
+入力ディレクトリ内の画像（2のべき乗枚必要）を自動で合成し、最終合成画像や経過を出力します。
+
+```sh
+(.venv) $ python tournament_wrapper.py <入力画像ディレクトリ> <出力ディレクトリ>
+```
+
+例:
+
+```sh
+(.venv) $ python tournament_wrapper.py input_tournament out_tournament
+```
+
+- `out_tournament/` に各ラウンドの合成画像、最終結果（`final_result.jpg`）、ログやJSONが保存されます。
+- `--main-script` オプションで `main.py` のパスを変更可能です（通常は不要）。
