@@ -36,7 +36,7 @@ class TournamentFaceMorph:
         self.log_file = self.output_dir / f"tournament_log_{timestamp}.txt"
 
         with open(self.log_file, 'w', encoding='utf-8') as f:
-            f.write(f"顔合成トーナメント実行ログ\n")
+            f.write("顔合成トーナメント実行ログ\n")
             f.write(f"開始時刻: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
             f.write(f"入力ディレクトリ: {self.input_dir}\n")
             f.write(f"出力ディレクトリ: {self.output_dir}\n")
@@ -105,7 +105,7 @@ class TournamentFaceMorph:
                 raise FileNotFoundError(f"合成画像が生成されませんでした: {pattern}")
 
         except subprocess.CalledProcessError as e:
-            self.log_message(f"エラー: main.pyの実行に失敗しました")
+            self.log_message("エラー: main.pyの実行に失敗しました")
             self.log_message(f"stdout: {e.stdout}")
             self.log_message(f"stderr: {e.stderr}")
             raise
@@ -184,7 +184,7 @@ class TournamentFaceMorph:
         if not self.main_script_path.exists():
             raise FileNotFoundError(f"main.pyが見つかりません: {self.main_script_path}")
 
-        self.log_message(f"\nトーナメント開始!")
+        self.log_message("トーナメント開始!")
 
         # トーナメント実行
         current_images = image_files
@@ -200,14 +200,14 @@ class TournamentFaceMorph:
             final_path = self.output_dir / "final_result.jpg"
             shutil.copy(str(final_result), str(final_path))
 
-            self.log_message(f"\n🏆 トーナメント完了!")
+            self.log_message("\n🏆 トーナメント完了!")
             self.log_message(f"最終結果: {final_path}")
 
         # JSON結果の保存
         self.save_tournament_json()
 
         # 完了ログ
-        self.log_message(f"\n全ての処理が完了しました。")
+        self.log_message("\n全ての処理が完了しました。")
         self.log_message(f"結果は {self.output_dir} に保存されています。")
 
 def main():
