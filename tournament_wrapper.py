@@ -15,7 +15,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 import os
-import jinja2  # Jinja2を追加
+import jinja2
 
 class TournamentFaceMorph:
     def __init__(self, input_dir, output_dir, main_script_path="main.py"):
@@ -124,7 +124,8 @@ class TournamentFaceMorph:
             img2 = images[i + 1]
 
             match_num = (i // 2) + 1
-            base_name = f"match_{match_num:02d}_{img1.stem}_vs_{img2.stem}"
+            # シンプルなファイル名に変更
+            base_name = f"round{round_num:02d}_match{match_num:02d}"
 
             self.log_message(f"  対戦 {match_num}: {img1.name} vs {img2.name}")
 
