@@ -18,17 +18,17 @@
                 <h2>ラウンド {{ loop.index }}</h2>
                 {% for match in round %}
                     <div class="match">
-                        <img src="{{ match.img1_rel }}" alt="Image 1">
+                        <img src="{{ match.img1_rel }}" alt="Image 1" title="{{ match.img1_rel.split('/')[-1] }}">
                         vs
-                        <img src="{{ match.img2_rel }}" alt="Image 2">
+                        <img src="{{ match.img2_rel }}" alt="Image 2" title="{{ match.img2_rel.split('/')[-1] }}">
                         →
-                        <img src="{{ match.result_rel }}" alt="Result">
+                        <img src="{{ match.result_rel }}" alt="Result" title="{{ match.result_rel.split('/')[-1] }}">
                     </div>
                 {% endfor %}
             </div>
         {% endfor %}
     </div>
     <h2>最終結果</h2>
-    <img src="{{ final_result }}" alt="Final Result" width="200">
+    <img src="{{ final_result }}" alt="Final Result" width="200" title="{{ final_result.split('/')[-1] }}">
 </body>
 </html>
