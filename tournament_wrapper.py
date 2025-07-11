@@ -76,6 +76,20 @@ class TournamentFaceMorph:
 
         return True
 
+    def copy_input_images(self, image_files):
+        """入力画像を出力ディレクトリのinputsフォルダにコピー"""
+        inputs_dir = self.output_dir / "inputs"
+        inputs_dir.mkdir(exist_ok=True)
+        copied_files = []
+
+        for img_file in image_files:
+            dest_path = inputs_dir / img_file.name
+            shutil.copy(str(img_file), str(dest_path))
+            copied_files.append(dest_path)
+            self.log_message(f"入力画像をコピー: {img_file.name} → {dest_path}")
+
+        return copied_files
+
     def run_face_morph(self, img1_path, img2_path, output_folder, base_name):
         """main.pyを実行して顔合成を行う"""
         temp_output_dir = output_folder / "temp"
@@ -212,6 +226,10 @@ class TournamentFaceMorph:
         image_files = self.get_image_files()
         self.validate_input(image_files)
 
+        # 入力画像をコピー（パス問題解消のため）
+        copied_image_files = self.copy_input_images(image_files)
+        current_images = copied_image_files  # 以降の処理はコピー先を使用
+
         # main.pyの存在確認
         if not self.main_script_path.exists():
             raise FileNotFoundError(f"main.pyが見つかりません: {self.main_script_path}")
@@ -219,7 +237,6 @@ class TournamentFaceMorph:
         self.log_message("トーナメント開始!")
 
         # トーナメント実行
-        current_images = image_files
         round_num = 1
 
         while len(current_images) > 1:
