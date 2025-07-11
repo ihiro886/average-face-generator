@@ -14,6 +14,8 @@ import shutil
 import json
 from datetime import datetime
 from pathlib import Path
+import os
+import jinja2  # Jinja2を追加
 
 class TournamentFaceMorph:
     def __init__(self, input_dir, output_dir, main_script_path="main.py"):
@@ -170,6 +172,36 @@ class TournamentFaceMorph:
 
         self.log_message(f"トーナメント結果をJSONで保存: {json_path}")
 
+    def generate_html(self):
+        """トーナメント表をHTMLで生成"""
+        template_path = Path(__file__).parent / "tournament_template.html"
+        if not template_path.exists():
+            raise FileNotFoundError(f"テンプレートファイルが見つかりません: {template_path}")
+
+        env = jinja2.Environment(loader=jinja2.FileSystemLoader(searchpath=str(template_path.parent)))
+        template = env.get_template(template_path.name)
+
+        # データ準備
+        total_rounds = max([match["round"] for match in self.tournament_log]) if self.tournament_log else 0
+        rounds = []
+        for r in range(1, total_rounds + 1):
+            round_matches = [m.copy() for m in self.tournament_log if m["round"] == r]  # コピーして変更
+            for match in round_matches:
+                match['img1_rel'] = os.path.relpath(match['image1'], self.output_dir)
+                match['img2_rel'] = os.path.relpath(match['image2'], self.output_dir)
+                match['result_rel'] = os.path.relpath(match['result'], self.output_dir)
+            rounds.append(round_matches)
+
+        final_path_rel = os.path.relpath(str(self.output_dir / "final_result.jpg"), self.output_dir)
+
+        html_content = template.render(rounds=rounds, final_result=final_path_rel)
+
+        html_path = self.output_dir / "tournament.html"
+        with open(html_path, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+
+        self.log_message(f"トーナメント表HTMLを生成: {html_path}")
+
     def run_tournament(self):
         """トーナメント全体を実行"""
         # 出力ディレクトリの準備
@@ -204,6 +236,9 @@ class TournamentFaceMorph:
 
         # JSON結果の保存
         self.save_tournament_json()
+
+        # HTML生成
+        self.generate_html()
 
         # 完了ログ
         self.log_message("\n全ての処理が完了しました。")
