@@ -14,6 +14,8 @@ import shutil
 import json
 from datetime import datetime
 from pathlib import Path
+import os
+import jinja2
 
 class TournamentFaceMorph:
     def __init__(self, input_dir, output_dir, main_script_path="main.py"):
@@ -74,6 +76,20 @@ class TournamentFaceMorph:
 
         return True
 
+    def copy_input_images(self, image_files):
+        """入力画像を出力ディレクトリのinputsフォルダにコピー"""
+        inputs_dir = self.output_dir / "inputs"
+        inputs_dir.mkdir(exist_ok=True)
+        copied_files = []
+
+        for img_file in image_files:
+            dest_path = inputs_dir / img_file.name
+            shutil.copy(str(img_file), str(dest_path))
+            copied_files.append(dest_path)
+            self.log_message(f"入力画像をコピー: {img_file.name} → {dest_path}")
+
+        return copied_files
+
     def run_face_morph(self, img1_path, img2_path, output_folder, base_name):
         """main.pyを実行して顔合成を行う"""
         temp_output_dir = output_folder / "temp"
@@ -122,7 +138,8 @@ class TournamentFaceMorph:
             img2 = images[i + 1]
 
             match_num = (i // 2) + 1
-            base_name = f"match_{match_num:02d}_{img1.stem}_vs_{img2.stem}"
+            # シンプルなファイル名に変更
+            base_name = f"round{round_num:02d}_match{match_num:02d}"
 
             self.log_message(f"  対戦 {match_num}: {img1.name} vs {img2.name}")
 
@@ -170,6 +187,36 @@ class TournamentFaceMorph:
 
         self.log_message(f"トーナメント結果をJSONで保存: {json_path}")
 
+    def generate_html(self):
+        """トーナメント表をHTMLで生成"""
+        template_path = Path(__file__).parent / "tournament_template.html"
+        if not template_path.exists():
+            raise FileNotFoundError(f"テンプレートファイルが見つかりません: {template_path}")
+
+        env = jinja2.Environment(loader=jinja2.FileSystemLoader(searchpath=str(template_path.parent)))
+        template = env.get_template(template_path.name)
+
+        # データ準備
+        total_rounds = max([match["round"] for match in self.tournament_log]) if self.tournament_log else 0
+        rounds = []
+        for r in range(1, total_rounds + 1):
+            round_matches = [m.copy() for m in self.tournament_log if m["round"] == r]  # コピーして変更
+            for match in round_matches:
+                match['img1_rel'] = os.path.relpath(match['image1'], self.output_dir)
+                match['img2_rel'] = os.path.relpath(match['image2'], self.output_dir)
+                match['result_rel'] = os.path.relpath(match['result'], self.output_dir)
+            rounds.append(round_matches)
+
+        final_path_rel = os.path.relpath(str(self.output_dir / "final_result.jpg"), self.output_dir)
+
+        html_content = template.render(rounds=rounds, final_result=final_path_rel)
+
+        html_path = self.output_dir / "tournament.html"
+        with open(html_path, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+
+        self.log_message(f"トーナメント表HTMLを生成: {html_path}")
+
     def run_tournament(self):
         """トーナメント全体を実行"""
         # 出力ディレクトリの準備
@@ -179,6 +226,10 @@ class TournamentFaceMorph:
         image_files = self.get_image_files()
         self.validate_input(image_files)
 
+        # 入力画像をコピー（パス問題解消のため）
+        copied_image_files = self.copy_input_images(image_files)
+        current_images = copied_image_files  # 以降の処理はコピー先を使用
+
         # main.pyの存在確認
         if not self.main_script_path.exists():
             raise FileNotFoundError(f"main.pyが見つかりません: {self.main_script_path}")
@@ -186,7 +237,6 @@ class TournamentFaceMorph:
         self.log_message("トーナメント開始!")
 
         # トーナメント実行
-        current_images = image_files
         round_num = 1
 
         while len(current_images) > 1:
@@ -204,6 +254,9 @@ class TournamentFaceMorph:
 
         # JSON結果の保存
         self.save_tournament_json()
+
+        # HTML生成
+        self.generate_html()
 
         # 完了ログ
         self.log_message("\n全ての処理が完了しました。")

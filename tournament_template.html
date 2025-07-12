@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>顔合成トーナメント表</title>
+    <style>
+        .bracket { display: flex; justify-content: space-around; }
+        .round { margin: 10px; border: 1px solid #ddd; padding: 10px; }
+        .match { margin: 5px; text-align: center; }
+        img { width: 100px; height: auto; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>顔合成トーナメント表</h1>
+    <div class="bracket">
+        {% for round in rounds %}
+            <div class="round">
+                <h2>ラウンド {{ loop.index }}</h2>
+                {% for match in round %}
+                    <div class="match">
+                        <img src="{{ match.img1_rel }}" alt="Image 1" title="{{ match.img1_rel.split('/')[-1] }}">
+                        vs
+                        <img src="{{ match.img2_rel }}" alt="Image 2" title="{{ match.img2_rel.split('/')[-1] }}">
+                        →
+                        <img src="{{ match.result_rel }}" alt="Result" title="{{ match.result_rel.split('/')[-1] }}">
+                    </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+    <h2>最終結果</h2>
+    <img src="{{ final_result }}" alt="Final Result" width="200" title="{{ final_result.split('/')[-1] }}">
+</body>
+</html>
